@@ -113,6 +113,25 @@ class Snake:
 
         return False
 
+    def turn_right(self):
+        if self.direction == 'left':
+            self.direction = 'up'
+        elif self.direction == 'up':
+            self.direction = 'right'
+        elif self.direction == 'right':
+            self.direction = 'down'
+        elif self.direction == 'down':
+            self.direction = 'left'
+
+    def turn_left(self):
+        if self.direction == 'left':
+            self.direction = 'down'
+        elif self.direction == 'down':
+            self.direction = 'right'
+        elif self.direction == 'right':
+            self.direction = 'up'
+        elif self.direction == 'up':
+            self.direction = 'left'
 
 def draw_window(grids, snakes):
     # Draw background
