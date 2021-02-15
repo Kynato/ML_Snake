@@ -9,7 +9,7 @@ GRID_DENSITY = 9
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
-INSTANCES_ROW = 2
+INSTANCES_ROW = 5
 INSTANCES = INSTANCES_ROW*INSTANCES_ROW
 INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
 CELL_SIZE = INSTANCE_SIZE/GRID_DENSITY
@@ -223,7 +223,7 @@ def single_player():
 
 def eval_genomes(genomes, config):
 
-    # Initiate containers
+    # Initiate game containers
     grids = []
     snakes = []
     for i in range(INSTANCES_ROW):
@@ -234,6 +234,17 @@ def eval_genomes(genomes, config):
             snakes.append(Snake(x, y))
     clock = pygame.time.Clock()
     run = True
+
+    # Initiate ML stuff
+    nets = []
+    gens = []
+
+    for _, g in genomes:
+        net = neat.nn.FeedForwardNetwork.create(g, config)
+        nets.append(net)
+
+        g.fitness = 0
+        gens.append(g)
 
     # Draw first frame
     draw_window(grids, snakes)
@@ -246,11 +257,16 @@ def eval_genomes(genomes, config):
                 run = False
                 pygame.quit()
                 quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
-                    snakes[0].turn_left()
-                if event.key == pygame.K_d:
-                    snakes[0].turn_right()
+
+        # ML DECISIONS
+        for x, s in enumerate(snakes):
+            output = nets[x].activate((1, 1))
+
+            if output[0] > 0.5:
+                s.turn_left()
+            elif output[0] < -0.5:
+                s.turn_right()
+
 
         # Check for snake crashes
         rem_s = []
