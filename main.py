@@ -8,21 +8,20 @@ GRID_DENSITY = 9
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
-INSTANCES_ROW = 5
+INSTANCES_ROW = 2
 INSTANCES = INSTANCES_ROW*INSTANCES_ROW
 INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
 CELL_SIZE = INSTANCE_SIZE/GRID_DENSITY
 
-FPS = 60
+
 
 class Grid:
-    
     APPLE_COLOR = (255, 0, 0)
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.color = (20, 20, 20)
         self.table = []
+        self.apple = (4, 5)
 
         for _ in range(GRID_DENSITY):
             line = []
@@ -30,13 +29,27 @@ class Grid:
                 line.append(0)
             self.table.append(line)
 
-        self.spawn_apple()
+        #self.spawn_apple()
 
     def spawn_apple(self):
         apple_x = random.randrange(0, GRID_DENSITY)
         apple_y = random.randrange(0, GRID_DENSITY)
+        
+        while apple_x == self.apple[0]:
+            apple_x = random.randrange(0, GRID_DENSITY)
 
+        while apple_y == self.apple[1]:
+            apple_y = random.randrange(0, GRID_DENSITY)
+
+        self.apple = (apple_x, apple_y)
+        
         self.table[apple_y][apple_x] = 1
+    
+    def respawn_apple(self):
+        self.table[self.apple[1]][self.apple[0]] = 0
+        self.spawn_apple()
+
+
 
     def draw(self, win):
         for i in range(GRID_DENSITY):
@@ -48,38 +61,100 @@ class Grid:
                     r = pygame.Rect(cell_x, cell_y, CELL_SIZE, CELL_SIZE)
                     pygame.draw.rect(win, self.APPLE_COLOR, r)
 
-def draw_window(grids):
+class Snake:
+    SNAKE_COLOR = (0, 200, 0)
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.queue = []
+        self.grow = False
+        self.direction = 'down'
+        # Start in center
+        self.queue.append((round(GRID_DENSITY/2), round(GRID_DENSITY/2)))
+
+    def draw(self, win):
+        for client in self.queue:
+            client_x = self.x + client[0]*CELL_SIZE
+            client_y = self.y + client[1]*CELL_SIZE
+            r = pygame.Rect(client_x, client_y, CELL_SIZE, CELL_SIZE)
+            pygame.draw.rect(win, self.SNAKE_COLOR, r)
+
+    def eat(self, grid):
+
+        apple = grid.apple
+        # If head position == apple
+        if self.queue[-1][0] == apple[0] and self.queue[-1][1] == apple[1]:
+            self.grow = True
+            grid.respawn_apple()
+
+    def move(self):
+        if self.direction == 'left':
+            self.queue.append( (self.queue[-1][0]-1, self.queue[-1][1]) )
+        elif self.direction == 'right':
+            self.queue.append( (self.queue[-1][0]+1, self.queue[-1][1]) )
+        elif self.direction == 'up':
+            self.queue.append( (self.queue[-1][0], self.queue[-1][1]-1) )
+        elif self.direction == 'down':
+            self.queue.append( (self.queue[-1][0], self.queue[-1][1]+1) )
+
+        if self.grow:
+            self.grow = False
+            return
+        else:
+            self.queue.pop(0)
+
+    
+
+def draw_window(grids, snakes):
     # Draw background
     bg_color = pygame.Color('black')
     bg = pygame.Rect(0, 0, WIN_SIZE, WIN_SIZE)
     pygame.draw.rect(WIN, bg_color, bg)
 
-    # Draw grid borders
+    # Draw grid borders || Changed to aalines. Maybe delete border thickness?
     border_color = pygame.Color('white')
     border_thickness = round(INSTANCE_SIZE/GRID_DENSITY/10)
     for row in range(INSTANCES_ROW + 1):
-        pygame.draw.line(WIN, border_color, (row*INSTANCE_SIZE, 0) , (row*INSTANCE_SIZE, WIN_SIZE), border_thickness)
-        pygame.draw.line(WIN, border_color, (0, row*INSTANCE_SIZE) , (WIN_SIZE, row*INSTANCE_SIZE), border_thickness)
+        pygame.draw.aaline(WIN, border_color, (row*INSTANCE_SIZE, 0) , (row*INSTANCE_SIZE, WIN_SIZE), border_thickness)
+        pygame.draw.aaline(WIN, border_color, (0, row*INSTANCE_SIZE) , (WIN_SIZE, row*INSTANCE_SIZE), border_thickness)
 
     # Draw grids
     for g in grids:
         g.draw(WIN)
 
+    # Draw snakes
+    for s in snakes:
+        s.draw(WIN)
+
     pygame.display.update()
 
-grids = []
-for i in range(INSTANCES_ROW):
-    for j in range(INSTANCES_ROW):
-        x = j * INSTANCE_SIZE
-        y = i * INSTANCE_SIZE
-        grids.append(Grid(x, y))
+FPS = 2
+def main():
+    grids = []
+    snakes = []
+    for i in range(INSTANCES_ROW):
+        for j in range(INSTANCES_ROW):
+            x = j * INSTANCE_SIZE
+            y = i * INSTANCE_SIZE
+            grids.append(Grid(x, y))
+            snakes.append(Snake(x, y))
 
-run = True
-while run:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-            pygame.quit()
-            quit()
+    clock = pygame.time.Clock()
+    run = True
+    draw_window(grids, snakes)
+    while run:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+                pygame.quit()
+                quit()
 
-    draw_window(grids)
+        for x, s in enumerate(snakes):
+            s.move()
+            s.eat(grids[x])
+            
+            
+        draw_window(grids, snakes)
+
+main()
