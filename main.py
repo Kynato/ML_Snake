@@ -29,7 +29,7 @@ class Grid:
                 line.append(0)
             self.table.append(line)
 
-        #self.spawn_apple()
+        self.spawn_apple()
 
     def spawn_apple(self):
         apple_x = random.randrange(0, GRID_DENSITY)
@@ -48,7 +48,6 @@ class Grid:
     def respawn_apple(self):
         self.table[self.apple[1]][self.apple[0]] = 0
         self.spawn_apple()
-
 
 
     def draw(self, win):
@@ -140,6 +139,8 @@ def draw_window(grids, snakes):
 
 FPS = 2
 def main():
+
+    # Initiate containers
     grids = []
     snakes = []
     for i in range(INSTANCES_ROW):
@@ -148,10 +149,13 @@ def main():
             y = i * INSTANCE_SIZE
             grids.append(Grid(x, y))
             snakes.append(Snake(x, y))
-
     clock = pygame.time.Clock()
     run = True
+
+    # Draw first frame
     draw_window(grids, snakes)
+
+    # Begin the loop
     while run:
         clock.tick(FPS)
         for event in pygame.event.get():
@@ -160,12 +164,32 @@ def main():
                 pygame.quit()
                 quit()
 
+        # Check for snake crashes
+        rem_s = []
+        rem_g = []
+        for x, s in enumerate(snakes):
+            if s.crash():
+                rem_s.append(s)
+                rem_g.append(grids[x])
+
+        # Remove crashed snakes and grids
+        for s in rem_s:
+            snakes.remove(s)
+        for g in rem_g:
+            grids.remove(g)
+
+        # Snakes eat and move
         for x, s in enumerate(snakes):
             s.move()
             s.eat(grids[x])
-            s.crash()
+
+        
+        # Break the loop if there are no snakes
+        if len(snakes) <= 0:
+            print('All snakes died horribly.')
+            run = False
             
-            
+        # Render everything
         draw_window(grids, snakes)
 
 main()
