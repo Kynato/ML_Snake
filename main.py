@@ -5,11 +5,11 @@ import os
 
 ### CONSTANTS ###
 WIN_SIZE = 900
-GRID_DENSITY = 9
+GRID_DENSITY = 5
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
-INSTANCES_ROW = 5
+INSTANCES_ROW = 10
 INSTANCES = INSTANCES_ROW*INSTANCES_ROW
 INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
 CELL_SIZE = INSTANCE_SIZE/GRID_DENSITY
@@ -63,12 +63,14 @@ class Grid:
 
 class Snake:
     SNAKE_COLOR = (0, 200, 0)
+    LIFE_RESET = GRID_DENSITY*GRID_DENSITY
     def __init__(self, x, y):
         self.x = x
         self.y = y
         self.queue = []
         self.grow = False
         self.direction = 'left'
+        self.life_left = self.LIFE_RESET
         # Start in center
         self.queue.append((round(GRID_DENSITY/2), round(GRID_DENSITY/2)))
 
@@ -80,14 +82,19 @@ class Snake:
             pygame.draw.rect(win, self.SNAKE_COLOR, r)
 
     def eat(self, grid):
-
         apple = grid.apple
         # If head position == apple
         if self.queue[-1][0] == apple[0] and self.queue[-1][1] == apple[1]:
             self.grow = True
             grid.respawn_apple()
+            self.life_left = self.LIFE_RESET
+            return True
+        
+        return False
 
     def move(self):
+        self.life_left -= 1
+
         if self.direction == 'left':
             self.queue.append( (self.queue[-1][0]-1, self.queue[-1][1]) )
         elif self.direction == 'right':
@@ -105,10 +112,8 @@ class Snake:
 
     def crash(self):
         if self.queue[-1][0] < 0 or self.queue[-1][0] > GRID_DENSITY-1:
-            print('crash')
             return True
         if self.queue[-1][1] < 0 or self.queue[-1][1] > GRID_DENSITY-1:
-            print('crash')
             return True
 
         head = self.queue[-1]
@@ -138,6 +143,12 @@ class Snake:
         elif self.direction == 'up':
             self.direction = 'left'
 
+    def too_old(self):
+        if self.life_left < 0:
+            return True
+        else:
+            return False
+
 def draw_window(grids, snakes):
     # Draw background
     bg_color = pygame.Color('black')
@@ -161,7 +172,7 @@ def draw_window(grids, snakes):
 
     pygame.display.update()
 
-FPS = 2
+FPS = 30
 def single_player():
 
     # Initiate containers
@@ -258,40 +269,64 @@ def eval_genomes(genomes, config):
                 pygame.quit()
                 quit()
 
-        # ML DECISIONS
-        for x, s in enumerate(snakes):
-            output = nets[x].activate((1, 1))
-
-            if output[0] > 0.5:
-                s.turn_left()
-            elif output[0] < -0.5:
-                s.turn_right()
-
-
-        # Check for snake crashes
-        rem_s = []
-        rem_g = []
-        for x, s in enumerate(snakes):
-            if s.crash():
-                rem_s.append(s)
-                rem_g.append(grids[x])
-
-        # Remove crashed snakes and grids
-        for s in rem_s:
-            snakes.remove(s)
-        for g in rem_g:
-            grids.remove(g)
-
-        # Snakes eat and move
-        for x, s in enumerate(snakes):
-            s.move()
-            s.eat(grids[x])
-
         
+        # Check for snake crashes and collect trash
+        rem_snakes = []
+        rem_grids = []
+        rem_nets = []
+        rem_gens = []
+        for x, s in enumerate(snakes):
+            if s.crash() or s.too_old():
+                gens[x].fitness -= 50
+                rem_snakes.append(s)
+                rem_grids.append(grids[x])
+                rem_nets.append(nets[x])
+                rem_gens.append(gens[x])
+
+        # Throw the trash into the garbage bin
+        for s in rem_snakes:
+            snakes.remove(s)
+        for g in rem_grids:
+            grids.remove(g)
+        for g in rem_gens:
+            gens.remove(g)
+        for n in rem_nets:
+            nets.remove(n)
+
         # Break the loop if there are no snakes
         if len(snakes) <= 0:
             print('All snakes died horribly.')
             run = False
+
+
+        # Snakes eat and move
+        if run:
+            for x, s in enumerate(snakes):
+                gens[x].fitness += 0.01
+                s.move()
+                if s.eat(grids[x]):
+                    gens[x].fitness += 100
+
+        
+        
+
+        # ML DECISIONS
+        if run:
+            for x, s in enumerate(snakes):
+                head_x = snakes[x].queue[-1][0]
+                head_y = snakes[x].queue[-1][1]
+                apple_x = grids[x].apple[0]
+                apple_y = grids[x].apple[1]
+                diff_x = apple_x - head_x
+                diff_y = apple_y - head_y
+                params = (head_x, head_y, apple_x, apple_y, diff_x, diff_y)
+                
+                output = nets[x].activate(params)
+
+                if output[0] > 0.5:
+                    s.turn_left()
+                elif output[0] < -0.5:
+                    s.turn_right()
             
         # Render everything
         draw_window(grids, snakes)
