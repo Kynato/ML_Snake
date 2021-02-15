@@ -1,6 +1,7 @@
 import pygame
 import neat
 import random
+import os
 
 ### CONSTANTS ###
 WIN_SIZE = 900
@@ -113,7 +114,6 @@ class Snake:
         head = self.queue[-1]
         for chunk in self.queue[:-1]:
             if head[0] == chunk[0] and head[1] == chunk[1]:
-                print(chunk)
                 return True
 
         return False
@@ -162,7 +162,7 @@ def draw_window(grids, snakes):
     pygame.display.update()
 
 FPS = 2
-def main():
+def single_player():
 
     # Initiate containers
     grids = []
@@ -221,4 +221,83 @@ def main():
         # Render everything
         draw_window(grids, snakes)
 
-main()
+def eval_genomes(genomes, config):
+
+    # Initiate containers
+    grids = []
+    snakes = []
+    for i in range(INSTANCES_ROW):
+        for j in range(INSTANCES_ROW):
+            x = j * INSTANCE_SIZE
+            y = i * INSTANCE_SIZE
+            grids.append(Grid(x, y))
+            snakes.append(Snake(x, y))
+    clock = pygame.time.Clock()
+    run = True
+
+    # Draw first frame
+    draw_window(grids, snakes)
+
+    # Begin the loop
+    while run:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+                pygame.quit()
+                quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_a:
+                    snakes[0].turn_left()
+                if event.key == pygame.K_d:
+                    snakes[0].turn_right()
+
+        # Check for snake crashes
+        rem_s = []
+        rem_g = []
+        for x, s in enumerate(snakes):
+            if s.crash():
+                rem_s.append(s)
+                rem_g.append(grids[x])
+
+        # Remove crashed snakes and grids
+        for s in rem_s:
+            snakes.remove(s)
+        for g in rem_g:
+            grids.remove(g)
+
+        # Snakes eat and move
+        for x, s in enumerate(snakes):
+            s.move()
+            s.eat(grids[x])
+
+        
+        # Break the loop if there are no snakes
+        if len(snakes) <= 0:
+            print('All snakes died horribly.')
+            run = False
+            
+        # Render everything
+        draw_window(grids, snakes)
+
+
+def run(config_path):
+    # Set configuration file
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
+
+    # Set population
+    p = neat.Population(config)
+
+    # Add reported for stats
+    p.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    p.add_reporter(stats)
+
+    # Set the fitness function
+    winner = p.run(eval_genomes, 1000)
+
+
+if __name__ == "__main__":
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(local_dir, "config-feedforward.txt")
+    run(config_path)
