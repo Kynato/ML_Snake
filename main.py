@@ -109,7 +109,12 @@ class Snake:
         if self.queue[-1][1] < 0 or self.queue[-1][1] > GRID_DENSITY-1:
             print('crash')
             return True
-            
+
+        head = self.queue[-1]
+        for chunk in self.queue[:-1]:
+            if head[0] == chunk[0] and head[1] == chunk[1]:
+                print(chunk)
+                return True
 
         return False
 
@@ -182,6 +187,11 @@ def main():
                 run = False
                 pygame.quit()
                 quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_a:
+                    snakes[0].turn_left()
+                if event.key == pygame.K_d:
+                    snakes[0].turn_right()
 
         # Check for snake crashes
         rem_s = []
