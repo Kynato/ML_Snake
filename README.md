@@ -3,7 +3,8 @@
 Classic game called Snake with the implementation of ML.
 It will try to play indefinetly.
 
-![GUI PROTOTYPE](https://github.com/Kynato/ML_Snake/blob/master/GUI_PREV/V1.png?raw=true)
+![GUI PROTOTYPE](https://github.com/Kynato/ML_Snake/blob/master/GUI_PREV/V1.png?raw=true)   
+
 Cell density is adjustable.   
 Instance amount is adjustable.    
 
