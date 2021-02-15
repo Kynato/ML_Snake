@@ -68,7 +68,7 @@ class Snake:
         self.y = y
         self.queue = []
         self.grow = False
-        self.direction = 'down'
+        self.direction = 'left'
         # Start in center
         self.queue.append((round(GRID_DENSITY/2), round(GRID_DENSITY/2)))
 
@@ -103,7 +103,17 @@ class Snake:
         else:
             self.queue.pop(0)
 
-    
+    def crash(self):
+        if self.queue[-1][0] < 0 or self.queue[-1][0] > GRID_DENSITY-1:
+            print('crash')
+            return True
+        if self.queue[-1][1] < 0 or self.queue[-1][1] > GRID_DENSITY-1:
+            print('crash')
+            return True
+            
+
+        return False
+
 
 def draw_window(grids, snakes):
     # Draw background
@@ -153,6 +163,7 @@ def main():
         for x, s in enumerate(snakes):
             s.move()
             s.eat(grids[x])
+            s.crash()
             
             
         draw_window(grids, snakes)
