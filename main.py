@@ -277,7 +277,7 @@ def eval_genomes(genomes, config):
         rem_gens = []
         for x, s in enumerate(snakes):
             if s.crash() or s.too_old():
-                gens[x].fitness -= 50
+                gens[x].fitness = 0
                 rem_snakes.append(s)
                 rem_grids.append(grids[x])
                 rem_nets.append(nets[x])
@@ -307,8 +307,6 @@ def eval_genomes(genomes, config):
                 if s.eat(grids[x]):
                     gens[x].fitness += 100
 
-        
-        
 
         # ML DECISIONS
         if run:
@@ -319,13 +317,15 @@ def eval_genomes(genomes, config):
                 apple_y = grids[x].apple[1]
                 diff_x = apple_x - head_x
                 diff_y = apple_y - head_y
-                params = (head_x, head_y, apple_x, apple_y, diff_x, diff_y)
-                
+                life_left = snakes[x].life_left
+                params = (head_x, head_y, diff_x, diff_y, life_left)
+
                 output = nets[x].activate(params)
 
-                if output[0] > 0.5:
+                pole = 0.0
+                if output[0] > pole:
                     s.turn_left()
-                elif output[0] < -0.5:
+                elif output[0] < -pole:
                     s.turn_right()
             
         # Render everything
