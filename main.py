@@ -6,7 +6,7 @@ import math
 
 ### CONSTANTS ###
 WIN_SIZE = 900
-GRID_DENSITY = 9
+GRID_DENSITY = 20
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
@@ -52,6 +52,13 @@ class Grid:
         self.table[self.apple[1]][self.apple[0]] = 0
         self.spawn_apple()
 
+    def place_snake(self, snake):
+        for row in range(GRID_DENSITY):
+            for col in range(GRID_DENSITY):
+                self.table[row][col] = 0
+        for x in snake:
+            self.table[ x[1] ][ x[0] ] = 2
+
 
     def draw(self, win):
         for i in range(GRID_DENSITY):
@@ -65,7 +72,7 @@ class Grid:
 
 class Snake:
     SNAKE_COLOR = (0, 200, 0)
-    LIFE_RESET = 10 # Change to something smarter?
+    LIFE_RESET = GRID_DENSITY*3 # Change to something smarter?
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -111,6 +118,10 @@ class Snake:
             return
         else:
             self.queue.pop(0)
+    
+
+
+
 
     def crash(self):
         if self.queue[-1][0] < 0 or self.queue[-1][0] > GRID_DENSITY-1:
@@ -221,7 +232,7 @@ def draw_window(grids, snakes):
 
     pygame.display.update()
 
-FPS = 15
+FPS = 20
 IS_DISPLAYED = True
 def single_player():
 
@@ -338,7 +349,7 @@ def eval_genomes(genomes, config):
         # Snakes eat and move
         if run:
             for x, s in enumerate(snakes):
-                #gens[x].fitness += 0.1
+                grids[x].place_snake(s.queue)
                 s.move()
                 if s.eat(grids[x]):
                     gens[x].fitness += 100
