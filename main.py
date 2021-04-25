@@ -10,12 +10,13 @@ GRID_DENSITY = 9
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
-INSTANCES_ROW = 3
-INSTANCES = INSTANCES_ROW*INSTANCES_ROW
-INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
-CELL_SIZE = INSTANCE_SIZE/GRID_DENSITY
+INSTANCES_ROW = 1
+POP_SIZE = 100
+#INSTANCES = INSTANCES_ROW*INSTANCES_ROW
+#INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
+CELL_SIZE = WIN_SIZE/GRID_DENSITY
 
-
+pygame.font.init()
 
 class Grid:
     APPLE_COLOR = (255, 0, 0)
@@ -64,7 +65,7 @@ class Grid:
 
 class Snake:
     SNAKE_COLOR = (0, 200, 0)
-    LIFE_RESET = GRID_DENSITY*GRID_DENSITY
+    LIFE_RESET = 10 # Change to something smarter?
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -144,6 +145,9 @@ class Snake:
         elif self.direction == 'up':
             self.direction = 'left'
 
+    def turn_dir(self, dir):
+        self.direction = dir
+
     def too_old(self):
         if self.life_left < 0:
             return True
@@ -172,6 +176,9 @@ class Snake:
         else:
             return False
 
+spec = 0
+gen = 0
+
 def draw_window(grids, snakes):
     # Draw background
     bg_color = pygame.Color('black')
@@ -180,10 +187,12 @@ def draw_window(grids, snakes):
 
     # Draw grid borders || Changed to aalines. Maybe delete border thickness?
     border_color = pygame.Color('white')
-    border_thickness = round(INSTANCE_SIZE/GRID_DENSITY/10)
+    border_thickness = round(WIN_SIZE/GRID_DENSITY/10)
+    '''
     for row in range(INSTANCES_ROW + 1):
         pygame.draw.aaline(WIN, border_color, (row*INSTANCE_SIZE, 0) , (row*INSTANCE_SIZE, WIN_SIZE), border_thickness)
         pygame.draw.aaline(WIN, border_color, (0, row*INSTANCE_SIZE) , (WIN_SIZE, row*INSTANCE_SIZE), border_thickness)
+        
 
     # Draw grids
     for g in grids:
@@ -192,19 +201,37 @@ def draw_window(grids, snakes):
     # Draw snakes
     for s in snakes:
         s.draw(WIN)
+    '''
+
+    if (len(grids) > 0):
+        grids[0].draw(WIN)
+        snakes[0].draw(WIN)
+
+
+    global gen
+    global spec
+    STAT_FONT = pygame.font.SysFont("arial", 50)
+    # Generation
+    text_gen = STAT_FONT.render("generation: " + str(gen), True, pygame.Color("white"))
+    WIN.blit(text_gen, (WIN_SIZE/2 - text_gen.get_width()/2, 10))
+
+    # Species left
+    text_spec = STAT_FONT.render("species: " + str(spec), True, pygame.Color("white"))
+    WIN.blit(text_spec, (WIN_SIZE/2 - text_spec.get_width()/2, WIN_SIZE - 10 - text_spec.get_height()))
 
     pygame.display.update()
 
 FPS = 10
+IS_DISPLAYED = False
 def single_player():
 
     # Initiate containers
     grids = []
     snakes = []
-    for i in range(INSTANCES_ROW):
-        for j in range(INSTANCES_ROW):
-            x = j * INSTANCE_SIZE
-            y = i * INSTANCE_SIZE
+    for i in range(POP_SIZE):
+        for j in range(POP_SIZE):
+            x = 0
+            y = 0
             grids.append(Grid(x, y))
             snakes.append(Snake(x, y))
     clock = pygame.time.Clock()
@@ -222,10 +249,18 @@ def single_player():
                 pygame.quit()
                 quit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
+                '''if event.key == pygame.K_a:
                     snakes[0].turn_left()
                 if event.key == pygame.K_d:
-                    snakes[0].turn_right()
+                    snakes[0].turn_right()'''
+                if event.key == pygame.K_a:
+                    snakes[0].turn_dir('left')
+                if event.key == pygame.K_d:
+                    snakes[0].turn_dir('right')
+                if event.key == pygame.K_w:
+                    snakes[0].turn_dir('up')
+                if event.key == pygame.K_s:
+                    snakes[0].turn_dir('down')
 
         # Check for snake crashes
         rem_s = []
@@ -255,17 +290,22 @@ def single_player():
         # Render everything
         draw_window(grids, snakes)
 
+#single_player()
+
 def eval_genomes(genomes, config):
+    global gen
+    global spec
+    gen += 1
+    spec = len(genomes)
 
     # Initiate game containers
     grids = []
     snakes = []
-    for i in range(INSTANCES_ROW):
-        for j in range(INSTANCES_ROW):
-            x = j * INSTANCE_SIZE
-            y = i * INSTANCE_SIZE
-            grids.append(Grid(x, y))
-            snakes.append(Snake(x, y))
+    for _ in range(len(genomes)):
+        x = 0
+        y = 0
+        grids.append(Grid(x, y))
+        snakes.append(Snake(x, y))
     clock = pygame.time.Clock()
     run = True
 
@@ -281,11 +321,13 @@ def eval_genomes(genomes, config):
         gens.append(g)
 
     # Draw first frame
-    draw_window(grids, snakes)
+    if IS_DISPLAYED:
+        draw_window(grids, snakes)
 
     # Begin the loop
     while run:
-        clock.tick(FPS)
+        if IS_DISPLAYED:
+            clock.tick(FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -302,7 +344,7 @@ def eval_genomes(genomes, config):
                 #gens[x].fitness += 0.1
                 s.move()
                 if s.eat(grids[x]):
-                    gens[x].fitness += (100 * len(s.queue))
+                    gens[x].fitness += 100
 
 
         # ML DECISIONS
@@ -332,21 +374,38 @@ def eval_genomes(genomes, config):
                 euclidean_distance = math.sqrt( pow(abs(diff_x), 2) + pow(abs(diff_y), 2) )
 
                 # nagroda za zblizenie sie do jablka
-                gens[x].fitness = (1/euclidean_distance)*1000
+                #gens[x].fitness = (1/euclidean_distance)*1000
 
                 # INPUTY DO NN
-                params = (euclidean_distance, goes_up, goes_right, head_x, head_y, apple_x, apple_y, mydegrees)
+                params = (euclidean_distance, goes_up, goes_right, diff_x, diff_y)
                 #params = (euclidean_distance, mydegrees)
                 
                 # Zbierz wynik
                 output = nets[x].activate(params)
 
+                # Wybierz kierunek
+                maks = -math.inf
+                kierunek = 2337
+                for x, o in enumerate(output):
+                    if o > maks:
+                        kierunek = x
+                        maks = o
+
+                if kierunek == 0:
+                    s.turn_dir('up')
+                elif kierunek == 1:
+                    s.turn_dir('down')
+                elif kierunek == 2:
+                    s.turn_dir('left')
+                elif kierunek == 3:
+                    s.turn_dir('right')
+
                 # Podejmij decyzje i skrec w lewo/prawo
-                pole = 0.33
+                '''pole = 0.33
                 if output[0] > pole:
                     s.turn_left()
                 elif output[0] < -pole:
-                    s.turn_right()
+                    s.turn_right()'''
 
         # Check for snake crashes and collect trash
         rem_snakes = []
@@ -356,6 +415,7 @@ def eval_genomes(genomes, config):
         for x, s in enumerate(snakes):
             if s.crash() or s.too_old():
                 #gens[x].fitness = 0
+                spec = spec-1
                 rem_snakes.append(s)
                 rem_grids.append(grids[x])
                 rem_nets.append(nets[x])
@@ -377,7 +437,8 @@ def eval_genomes(genomes, config):
             run = False
             
         # Render everything
-        draw_window(grids, snakes)
+        if IS_DISPLAYED:
+            draw_window(grids, snakes)
 
 
 def run(config_path):
@@ -393,7 +454,7 @@ def run(config_path):
     p.add_reporter(stats)
 
     # Set the fitness function
-    winner = p.run(eval_genomes, 1000)
+    winner = p.run(eval_genomes, 500)
 
 
 if __name__ == "__main__":
