@@ -2,14 +2,15 @@ import pygame
 import neat
 import random
 import os
+import math
 
 ### CONSTANTS ###
 WIN_SIZE = 900
-GRID_DENSITY = 5
+GRID_DENSITY = 9
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
-INSTANCES_ROW = 10
+INSTANCES_ROW = 3
 INSTANCES = INSTANCES_ROW*INSTANCES_ROW
 INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
 CELL_SIZE = INSTANCE_SIZE/GRID_DENSITY
@@ -148,6 +149,28 @@ class Snake:
             return True
         else:
             return False
+    
+    def get_direction(self):
+        if self.direction == 'left':
+            return 0
+        elif self.direction == 'down':
+            return 1
+        elif self.direction == 'right':
+            return 2
+        elif self.direction == 'up':
+            return 3
+    
+    def goes_up(self):
+        if self.direction == 'up':
+            return True
+        else:
+            return False
+
+    def goes_right(self):
+        if self.direction == 'right':
+            return True
+        else:
+            return False
 
 def draw_window(grids, snakes):
     # Draw background
@@ -172,7 +195,7 @@ def draw_window(grids, snakes):
 
     pygame.display.update()
 
-FPS = 30
+FPS = 10
 def single_player():
 
     # Initiate containers
@@ -269,7 +292,62 @@ def eval_genomes(genomes, config):
                 pygame.quit()
                 quit()
 
-        
+        if len(snakes) != len(gens):
+            print('Ilosc wezy i genow jest rozna. Przerywam.')
+            run = False
+
+        # Snakes eat and move
+        if run:
+            for x, s in enumerate(snakes):
+                #gens[x].fitness += 0.1
+                s.move()
+                if s.eat(grids[x]):
+                    gens[x].fitness += (100 * len(s.queue))
+
+
+        # ML DECISIONS
+        if run:
+            for x, s in enumerate(snakes):
+                # wspolrzedne glowy weza i jablek
+                head_x = snakes[x].queue[-1][0]
+                head_y = snakes[x].queue[-1][1]
+                apple_x = grids[x].apple[0]
+                apple_y = grids[x].apple[1]
+
+                # odleglosc glowy weza od jablka
+                diff_x = apple_x - head_x
+                diff_y = apple_y - head_y
+                vec_x = head_x - apple_x
+                vec_y = head_y - apple_y
+
+                # kierunek jazdy
+                goes_right = snakes[x].goes_right()
+                goes_up = snakes[x].goes_up()
+
+                # obliczenie kata do jablka
+                myradians = math.atan2(vec_y, vec_x)
+                mydegrees = math.degrees(myradians) / 180
+
+                # obliczanie odleglosci euklidesowej
+                euclidean_distance = math.sqrt( pow(abs(diff_x), 2) + pow(abs(diff_y), 2) )
+
+                # nagroda za zblizenie sie do jablka
+                gens[x].fitness = (1/euclidean_distance)*1000
+
+                # INPUTY DO NN
+                params = (euclidean_distance, goes_up, goes_right, head_x, head_y, apple_x, apple_y, mydegrees)
+                #params = (euclidean_distance, mydegrees)
+                
+                # Zbierz wynik
+                output = nets[x].activate(params)
+
+                # Podejmij decyzje i skrec w lewo/prawo
+                pole = 0.33
+                if output[0] > pole:
+                    s.turn_left()
+                elif output[0] < -pole:
+                    s.turn_right()
+
         # Check for snake crashes and collect trash
         rem_snakes = []
         rem_grids = []
@@ -277,7 +355,7 @@ def eval_genomes(genomes, config):
         rem_gens = []
         for x, s in enumerate(snakes):
             if s.crash() or s.too_old():
-                gens[x].fitness = 0
+                #gens[x].fitness = 0
                 rem_snakes.append(s)
                 rem_grids.append(grids[x])
                 rem_nets.append(nets[x])
@@ -297,36 +375,6 @@ def eval_genomes(genomes, config):
         if len(snakes) <= 0:
             print('All snakes died horribly.')
             run = False
-
-
-        # Snakes eat and move
-        if run:
-            for x, s in enumerate(snakes):
-                gens[x].fitness += 0.01
-                s.move()
-                if s.eat(grids[x]):
-                    gens[x].fitness += 100
-
-
-        # ML DECISIONS
-        if run:
-            for x, s in enumerate(snakes):
-                head_x = snakes[x].queue[-1][0]
-                head_y = snakes[x].queue[-1][1]
-                apple_x = grids[x].apple[0]
-                apple_y = grids[x].apple[1]
-                diff_x = apple_x - head_x
-                diff_y = apple_y - head_y
-                life_left = snakes[x].life_left
-                params = (head_x, head_y, diff_x, diff_y, life_left)
-
-                output = nets[x].activate(params)
-
-                pole = 0.0
-                if output[0] > pole:
-                    s.turn_left()
-                elif output[0] < -pole:
-                    s.turn_right()
             
         # Render everything
         draw_window(grids, snakes)
