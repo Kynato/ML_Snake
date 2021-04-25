@@ -221,8 +221,8 @@ def draw_window(grids, snakes):
 
     pygame.display.update()
 
-FPS = 10
-IS_DISPLAYED = False
+FPS = 15
+IS_DISPLAYED = True
 def single_player():
 
     # Initiate containers
@@ -334,9 +334,6 @@ def eval_genomes(genomes, config):
                 pygame.quit()
                 quit()
 
-        if len(snakes) != len(gens):
-            print('Ilosc wezy i genow jest rozna. Przerywam.')
-            run = False
 
         # Snakes eat and move
         if run:
