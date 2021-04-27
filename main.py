@@ -5,13 +5,13 @@ import os
 import math
 
 ### CONSTANTS ###
-WIN_SIZE = 900
+WIN_SIZE = 300
 GRID_DENSITY = 15
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
 INSTANCES_ROW = 1
-POP_SIZE = 500
+POP_SIZE = 200
 #INSTANCES = INSTANCES_ROW*INSTANCES_ROW
 #INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
 CELL_SIZE = WIN_SIZE/GRID_DENSITY
@@ -90,6 +90,36 @@ class Grid:
 
         return (top, right, bottom, left)
 
+    def death_booleans(self, head):
+        x = head[0]
+        y = head[1]
+
+        top = False
+        if y-1 < 0:
+            top = True
+        elif self.table[y-1][x] == 2:
+            top = True
+        
+        bottom = False
+        if y+1 > GRID_DENSITY-1:
+            bottom = True
+        elif self.table[y+1][x] == 2:
+            bottom = True
+
+        left = False
+        if x-1 < 0:
+            left = True
+        elif self.table[y][x-1] == 2:
+            left = True
+
+        right = False
+        if x+1 > GRID_DENSITY-1:
+            right = True
+        elif self.table[y][x+1] == 2:
+            right = True
+
+        return (top, right, bottom, left)
+
     def wall_dist(self, head):
         x = head[0]
         y = head[1]
@@ -143,7 +173,7 @@ class Grid:
 
 class Snake:
     SNAKE_COLOR = (0, 200, 0)
-    LIFE_RESET = GRID_DENSITY*3 # Change to something smarter?
+    LIFE_RESET = GRID_DENSITY*GRID_DENSITY # Change to something smarter?
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -191,9 +221,6 @@ class Snake:
             self.queue.pop(0)
     
 
-
-
-
     def crash(self):
         if self.queue[-1][0] < 0 or self.queue[-1][0] > GRID_DENSITY-1:
             return True
@@ -228,6 +255,15 @@ class Snake:
             self.direction = 'left'
 
     def turn_dir(self, dir):
+        if self.direction == 'up' and dir == 'down':
+            return
+        if self.direction == 'down' and dir == 'up':
+            return
+        if self.direction == 'right' and dir == 'left':
+            return
+        if self.direction == 'left' and dir == 'right':
+            return
+
         self.direction = dir
 
     def too_old(self):
@@ -363,6 +399,7 @@ def single_player():
             s.eat(grids[x])
             head = s.queue[-1]
 
+            '''
             print('Tail_dist:')
             print(grids[x].tail_dist(head))
             print('Wall_dist:')
@@ -370,6 +407,8 @@ def single_player():
             print('Apple_dist:')
             print(grids[x].apple_dist(head))
             print('======================')
+            '''
+            print(grids[x].death_booleans(head))
 
         
         # Break the loop if there are no snakes
@@ -439,6 +478,7 @@ def eval_genomes(genomes, config):
         if run:
             for x, s in enumerate(snakes):
                 s.move()
+                gens[x].fitness += 1
                 if s.eat(grids[x]):
                     gens[x].fitness += 100
 
@@ -448,8 +488,16 @@ def eval_genomes(genomes, config):
         rem_nets = []
         rem_gens = []
         for x, s in enumerate(snakes):
-            if s.crash() or s.too_old():
-                #gens[x].fitness = 0
+            if s.crash():
+                #print('sciana mordo')
+                gens[x].fitness = gens[x].fitness *0.5
+                spec = spec-1
+                rem_snakes.append(s)
+                rem_grids.append(grids[x])
+                rem_nets.append(nets[x])
+                rem_gens.append(gens[x])
+            elif s.too_old():
+                print('dom starcow')
                 spec = spec-1
                 rem_snakes.append(s)
                 rem_grids.append(grids[x])
@@ -504,15 +552,18 @@ def eval_genomes(genomes, config):
                 euclidean_distance = math.sqrt( pow(abs(diff_x), 2) + pow(abs(diff_y), 2) )
 
                 # nagroda za zblizenie sie do jablka
-                #gens[x].fitness = (1/euclidean_distance)*1000
+                #gens[x].fitness += (1/euclidean_distance)*10
 
                 wall_distances = grids[x].wall_dist(head)
                 apple_distances = grids[x].apple_dist(head)
                 tail_distances = grids[x].tail_dist(head)
+                death_booleans = grids[x].death_booleans(head)
 
                 # INPUTY DO NN
+                #params = (euclidean_distance, diff_x, diff_y)
                 #params = (euclidean_distance, goes_up, goes_right, diff_x, diff_y)
-                params = (wall_distances + apple_distances + tail_distances + (euclidean_distance, goes_up, goes_right, mydegrees))
+                params = ((euclidean_distance, diff_x, diff_y,) + death_booleans)
+                #params = (wall_distances + apple_distances + tail_distances + (euclidean_distance, goes_up, goes_right, diff_x, diff_y,))
                 
                 #print(params)
                 #params = (euclidean_distance, mydegrees)
@@ -520,9 +571,27 @@ def eval_genomes(genomes, config):
                 # Zbierz wynik
                 output = nets[x].activate(params)
 
+                '''
+                # 3 output
+                maks = -math.inf
+                kierunek = 2137
+                for x, o in enumerate(output):
+                    if o > maks:
+                        kierunek = x
+                        maks = o
+
+                if kierunek == 0:
+                    s.turn_left()
+                elif kierunek == 1:
+                    s.turn_right()
+                elif kierunek == 2:
+                    continue #go forward
+                '''
+                
+                # 4 output
                 # Wybierz kierunek
                 maks = -math.inf
-                kierunek = 2337
+                kierunek = 2137
                 for x, o in enumerate(output):
                     if o > maks:
                         kierunek = x
@@ -536,7 +605,9 @@ def eval_genomes(genomes, config):
                     s.turn_dir('left')
                 elif kierunek == 3:
                     s.turn_dir('right')
+                
 
+                # 1 output
                 # Podejmij decyzje i skrec w lewo/prawo
                 '''pole = 0.33
                 if output[0] > pole:
