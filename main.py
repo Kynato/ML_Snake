@@ -6,12 +6,12 @@ import math
 
 ### CONSTANTS ###
 WIN_SIZE = 900
-GRID_DENSITY = 20
+GRID_DENSITY = 15
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
 INSTANCES_ROW = 1
-POP_SIZE = 100
+POP_SIZE = 500
 #INSTANCES = INSTANCES_ROW*INSTANCES_ROW
 #INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
 CELL_SIZE = WIN_SIZE/GRID_DENSITY
@@ -55,10 +55,81 @@ class Grid:
     def place_snake(self, snake):
         for row in range(GRID_DENSITY):
             for col in range(GRID_DENSITY):
-                self.table[row][col] = 0
+                if self.table[row][col] != 1:
+                    self.table[row][col] = 0
         for x in snake:
             self.table[ x[1] ][ x[0] ] = 2
 
+    def tail_dist(self, head):
+        x = head[0]
+        y = head[1]
+
+        top = 0
+        for i in reversed(range(0, y)):
+            top = top + 1
+            if self.table[i][y] == 2:
+                break
+        
+        bottom = 0
+        for i in range(y+1, GRID_DENSITY):
+            bottom = bottom + 1
+            if self.table[i][y] == 2:
+                break
+
+        left = 0
+        for i in reversed(range(0, x)):
+            left = left + 1
+            if self.table[x][i] == 2:
+                break
+
+        right = 0
+        for i in range(x+1, GRID_DENSITY):
+            right = right + 1
+            if self.table[x][i] == 2:
+                break
+
+        return (top, right, bottom, left)
+
+    def wall_dist(self, head):
+        x = head[0]
+        y = head[1]
+
+        top = y
+        right = x
+        bottom = GRID_DENSITY - y - 1
+        left = GRID_DENSITY - x - 1
+
+        return (top, right, bottom, left)
+
+    def apple_dist(self, head):
+        x = head[0]
+        y = head[1]
+
+        top = 0
+        for i in reversed(range(0, y)):
+            top = top + 1
+            if self.table[i][y] == 1:
+                return (top, 0, 0, 0)
+        
+        bottom = 0
+        for i in range(y+1, GRID_DENSITY):
+            bottom = bottom + 1
+            if self.table[i][y] == 1:
+                return (0, 0, bottom, 0)
+
+        left = 0
+        for i in reversed(range(0, x)):
+            left = left + 1
+            if self.table[x][i] == 1:
+                return (0, 0, 0, left)
+
+        right = 0
+        for i in range(x+1, GRID_DENSITY):
+            right = right + 1
+            if self.table[x][i] == 1:
+                return (0, right, 0, 0)
+
+        return (top, right, bottom, left)
 
     def draw(self, win):
         for i in range(GRID_DENSITY):
@@ -239,12 +310,10 @@ def single_player():
     # Initiate containers
     grids = []
     snakes = []
-    for i in range(POP_SIZE):
-        for j in range(POP_SIZE):
-            x = 0
-            y = 0
-            grids.append(Grid(x, y))
-            snakes.append(Snake(x, y))
+    x = 0
+    y = 0
+    grids.append(Grid(x, y))
+    snakes.append(Snake(x, y))
     clock = pygame.time.Clock()
     run = True
 
@@ -289,8 +358,18 @@ def single_player():
 
         # Snakes eat and move
         for x, s in enumerate(snakes):
+            grids[x].place_snake(s.queue)
             s.move()
             s.eat(grids[x])
+            head = s.queue[-1]
+
+            print('Tail_dist:')
+            print(grids[x].tail_dist(head))
+            print('Wall_dist:')
+            print(grids[x].wall_dist(head))
+            print('Apple_dist:')
+            print(grids[x].apple_dist(head))
+            print('======================')
 
         
         # Break the loop if there are no snakes
@@ -304,6 +383,8 @@ def single_player():
 #single_player()
 
 def eval_genomes(genomes, config):
+    global FPS
+    global IS_DISPLAYED
     global gen
     global spec
     gen += 1
@@ -344,76 +425,22 @@ def eval_genomes(genomes, config):
                 run = False
                 pygame.quit()
                 quit()
+            if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a:
+                        if (FPS > 1):
+                            FPS = FPS - 1
+                    if event.key == pygame.K_d:
+                        FPS = FPS + 1
+                    if event.key == pygame.K_SPACE:
+                        IS_DISPLAYED = not IS_DISPLAYED
 
 
         # Snakes eat and move
         if run:
             for x, s in enumerate(snakes):
-                grids[x].place_snake(s.queue)
                 s.move()
                 if s.eat(grids[x]):
                     gens[x].fitness += 100
-
-
-        # ML DECISIONS
-        if run:
-            for x, s in enumerate(snakes):
-                # wspolrzedne glowy weza i jablek
-                head_x = snakes[x].queue[-1][0]
-                head_y = snakes[x].queue[-1][1]
-                apple_x = grids[x].apple[0]
-                apple_y = grids[x].apple[1]
-
-                # odleglosc glowy weza od jablka
-                diff_x = apple_x - head_x
-                diff_y = apple_y - head_y
-                vec_x = head_x - apple_x
-                vec_y = head_y - apple_y
-
-                # kierunek jazdy
-                goes_right = snakes[x].goes_right()
-                goes_up = snakes[x].goes_up()
-
-                # obliczenie kata do jablka
-                myradians = math.atan2(vec_y, vec_x)
-                mydegrees = math.degrees(myradians) / 180
-
-                # obliczanie odleglosci euklidesowej
-                euclidean_distance = math.sqrt( pow(abs(diff_x), 2) + pow(abs(diff_y), 2) )
-
-                # nagroda za zblizenie sie do jablka
-                #gens[x].fitness = (1/euclidean_distance)*1000
-
-                # INPUTY DO NN
-                params = (euclidean_distance, goes_up, goes_right, diff_x, diff_y)
-                #params = (euclidean_distance, mydegrees)
-                
-                # Zbierz wynik
-                output = nets[x].activate(params)
-
-                # Wybierz kierunek
-                maks = -math.inf
-                kierunek = 2337
-                for x, o in enumerate(output):
-                    if o > maks:
-                        kierunek = x
-                        maks = o
-
-                if kierunek == 0:
-                    s.turn_dir('up')
-                elif kierunek == 1:
-                    s.turn_dir('down')
-                elif kierunek == 2:
-                    s.turn_dir('left')
-                elif kierunek == 3:
-                    s.turn_dir('right')
-
-                # Podejmij decyzje i skrec w lewo/prawo
-                '''pole = 0.33
-                if output[0] > pole:
-                    s.turn_left()
-                elif output[0] < -pole:
-                    s.turn_right()'''
 
         # Check for snake crashes and collect trash
         rem_snakes = []
@@ -443,6 +470,81 @@ def eval_genomes(genomes, config):
         if len(snakes) <= 0:
             print('All snakes died horribly.')
             run = False
+
+        if run:
+            for x, s in enumerate(snakes):
+                grids[x].place_snake(s.queue)
+
+
+        # ML DECISIONS
+        if run:
+            for x, s in enumerate(snakes):
+                head = s.queue[-1]
+                # wspolrzedne glowy weza i jablek
+                head_x = snakes[x].queue[-1][0]
+                head_y = snakes[x].queue[-1][1]
+                apple_x = grids[x].apple[0]
+                apple_y = grids[x].apple[1]
+
+                # odleglosc glowy weza od jablka
+                diff_x = apple_x - head_x
+                diff_y = apple_y - head_y
+                vec_x = head_x - apple_x
+                vec_y = head_y - apple_y
+
+                # kierunek jazdy
+                goes_right = snakes[x].goes_right()
+                goes_up = snakes[x].goes_up()
+
+                # obliczenie kata do jablka
+                myradians = math.atan2(vec_y, vec_x)
+                mydegrees = math.degrees(myradians) / 180
+
+                # obliczanie odleglosci euklidesowej
+                euclidean_distance = math.sqrt( pow(abs(diff_x), 2) + pow(abs(diff_y), 2) )
+
+                # nagroda za zblizenie sie do jablka
+                #gens[x].fitness = (1/euclidean_distance)*1000
+
+                wall_distances = grids[x].wall_dist(head)
+                apple_distances = grids[x].apple_dist(head)
+                tail_distances = grids[x].tail_dist(head)
+
+                # INPUTY DO NN
+                #params = (euclidean_distance, goes_up, goes_right, diff_x, diff_y)
+                params = (wall_distances + apple_distances + tail_distances + (euclidean_distance, goes_up, goes_right, mydegrees))
+                
+                #print(params)
+                #params = (euclidean_distance, mydegrees)
+                
+                # Zbierz wynik
+                output = nets[x].activate(params)
+
+                # Wybierz kierunek
+                maks = -math.inf
+                kierunek = 2337
+                for x, o in enumerate(output):
+                    if o > maks:
+                        kierunek = x
+                        maks = o
+
+                if kierunek == 0:
+                    s.turn_dir('up')
+                elif kierunek == 1:
+                    s.turn_dir('down')
+                elif kierunek == 2:
+                    s.turn_dir('left')
+                elif kierunek == 3:
+                    s.turn_dir('right')
+
+                # Podejmij decyzje i skrec w lewo/prawo
+                '''pole = 0.33
+                if output[0] > pole:
+                    s.turn_left()
+                elif output[0] < -pole:
+                    s.turn_right()'''
+
+        
             
         # Render everything
         if IS_DISPLAYED:
