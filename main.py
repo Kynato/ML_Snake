@@ -5,13 +5,13 @@ import os
 import math
 
 ### CONSTANTS ###
-WIN_SIZE = 300
-GRID_DENSITY = 15
+WIN_SIZE = 870
+GRID_DENSITY = 9
 
 WIN = pygame.display.set_mode((WIN_SIZE, WIN_SIZE))
 # We want it squared so it displays nicely
 INSTANCES_ROW = 1
-POP_SIZE = 200
+POP_SIZE = 500
 #INSTANCES = INSTANCES_ROW*INSTANCES_ROW
 #INSTANCE_SIZE = WIN_SIZE/INSTANCES_ROW
 CELL_SIZE = WIN_SIZE/GRID_DENSITY
@@ -35,14 +35,12 @@ class Grid:
         self.spawn_apple()
 
     def spawn_apple(self):
-        apple_x = random.randrange(0, GRID_DENSITY)
-        apple_y = random.randrange(0, GRID_DENSITY)
+        apple_x = random.randrange(0, GRID_DENSITY-1)
+        apple_y = random.randrange(0, GRID_DENSITY-1)
         
-        while apple_x == self.apple[0]:
-            apple_x = random.randrange(0, GRID_DENSITY)
-
-        while apple_y == self.apple[1]:
-            apple_y = random.randrange(0, GRID_DENSITY)
+        while self.table[apple_y][apple_x] != 0:
+            apple_x = random.randrange(0, GRID_DENSITY-1)
+            apple_y = random.randrange(0, GRID_DENSITY-1)
 
         self.apple = (apple_x, apple_y)
         
@@ -159,7 +157,7 @@ class Grid:
             if self.table[x][i] == 1:
                 return (0, right, 0, 0)
 
-        return (top, right, bottom, left)
+        return (0, 0, 0, 0)
 
     def draw(self, win):
         for i in range(GRID_DENSITY):
@@ -169,11 +167,12 @@ class Grid:
                     cell_x = self.x + j*CELL_SIZE
                     cell_y = self.y + i*CELL_SIZE
                     r = pygame.Rect(cell_x, cell_y, CELL_SIZE, CELL_SIZE)
-                    pygame.draw.rect(win, self.APPLE_COLOR, r)
+                    pygame.draw.rect(win, self.APPLE_COLOR, r, border_radius=40)
 
 class Snake:
     SNAKE_COLOR = (0, 200, 0)
-    LIFE_RESET = GRID_DENSITY*GRID_DENSITY # Change to something smarter?
+    #LIFE_RESET = GRID_DENSITY*GRID_DENSITY # Change to something smarter?
+    LIFE_RESET = GRID_DENSITY*4
     def __init__(self, x, y):
         self.x = x
         self.y = y
@@ -189,7 +188,7 @@ class Snake:
             client_x = self.x + client[0]*CELL_SIZE
             client_y = self.y + client[1]*CELL_SIZE
             r = pygame.Rect(client_x, client_y, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(win, self.SNAKE_COLOR, r)
+            pygame.draw.rect(win, self.SNAKE_COLOR, r, border_radius=10)
 
     def eat(self, grid):
         apple = grid.apple
@@ -339,7 +338,7 @@ def draw_window(grids, snakes):
 
     pygame.display.update()
 
-FPS = 20
+FPS = 10
 IS_DISPLAYED = True
 def single_player():
 
@@ -498,6 +497,7 @@ def eval_genomes(genomes, config):
                 rem_gens.append(gens[x])
             elif s.too_old():
                 print('dom starcow')
+                gens[x].fitness = gens[x].fitness * 2
                 spec = spec-1
                 rem_snakes.append(s)
                 rem_grids.append(grids[x])
@@ -527,7 +527,7 @@ def eval_genomes(genomes, config):
         # ML DECISIONS
         if run:
             for x, s in enumerate(snakes):
-                head = s.queue[-1]
+                head = snakes[x].queue[-1]
                 # wspolrzedne glowy weza i jablek
                 head_x = snakes[x].queue[-1][0]
                 head_y = snakes[x].queue[-1][1]
@@ -539,6 +539,9 @@ def eval_genomes(genomes, config):
                 diff_y = apple_y - head_y
                 vec_x = head_x - apple_x
                 vec_y = head_y - apple_y
+
+                live_left = snakes[x].life_left
+                normalised_lifespan = live_left/(GRID_DENSITY*4)
 
                 # kierunek jazdy
                 goes_right = snakes[x].goes_right()
@@ -561,12 +564,17 @@ def eval_genomes(genomes, config):
 
                 # INPUTY DO NN
                 #params = (euclidean_distance, diff_x, diff_y)
-                #params = (euclidean_distance, goes_up, goes_right, diff_x, diff_y)
-                params = ((euclidean_distance, diff_x, diff_y,) + death_booleans)
-                #params = (wall_distances + apple_distances + tail_distances + (euclidean_distance, goes_up, goes_right, diff_x, diff_y,))
+                #params = (euclidean_distance, head_x, head_y, diff_x, diff_y)
+                #params = ((euclidean_distance, diff_x, diff_y, normalised_lifespan, ) + death_booleans)
+
+
+                params = (wall_distances + apple_distances + tail_distances + (euclidean_distance, diff_x, diff_y,))
                 
                 #print(params)
                 #params = (euclidean_distance, mydegrees)
+
+                if (x == 0):
+                    print(params)
                 
                 # Zbierz wynik
                 output = nets[x].activate(params)
