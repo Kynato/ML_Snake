@@ -159,6 +159,155 @@ class Grid:
 
         return (0, 0, 0, 0)
 
+    def is_food_front(self, snake):
+        dir = snake.direction
+        head = snake.queue[-1]
+        head_x = head[0]
+        head_y = head[1]
+        apple_x = self.apple[0]
+        apple_y = self.apple[1]
+
+        if head_y == apple_y:
+            if dir == 'left' and apple_x < head_x:
+                return True
+            if dir == 'right' and apple_x > head_x:
+                return True
+        
+        if head_x == apple_x:
+            if dir == 'up' and apple_y < head_y:
+                return True
+            if dir == 'down' and apple_y > head_y:
+                return True
+        
+        return False
+
+    def is_food_right(self, snake):
+        dir = snake.direction
+        head = snake.queue[-1]
+        head_x = head[0]
+        head_y = head[1]
+        apple_x = self.apple[0]
+        apple_y = self.apple[1]
+
+        if head_y == apple_y:
+            if dir == 'down' and apple_x < head_x:
+                return True
+            if dir == 'up' and apple_x > head_x:
+                return True
+        
+        if head_x == apple_x:
+            if dir == 'left' and apple_y < head_y:
+                return True
+            if dir == 'right' and apple_y > head_y:
+                return True
+        
+        return False
+
+    def is_food_left(self, snake):
+        dir = snake.direction
+        head = snake.queue[-1]
+        head_x = head[0]
+        head_y = head[1]
+        apple_x = self.apple[0]
+        apple_y = self.apple[1]
+
+        if head_y == apple_y:
+            if dir == 'up' and apple_x < head_x:
+                return True
+            if dir == 'down' and apple_x > head_x:
+                return True
+        
+        if head_x == apple_x:
+            if dir == 'right' and apple_y < head_y:
+                return True
+            if dir == 'left' and apple_y > head_y:
+                return True
+        
+        return False
+
+    def is_front_clear(self, snake):
+        dir = snake.direction
+        head = snake.queue[-1]
+
+        if dir == 'left' and head[0]-1 < 0:
+            return False
+        if dir == 'right' and head[0]+1 > GRID_DENSITY-1:
+            return False
+        if dir == 'up' and head[1]-1 < 0:
+            return False
+        if dir == 'down' and head[1]+1 > GRID_DENSITY-1:
+            return False
+
+        if dir == 'left':
+            if self.table[head[1]][head[0]-1] != 2:
+                return True
+        if dir == 'right':
+            if self.table[head[1]][head[0]+1] != 2:
+                return True
+        if dir == 'up':
+            if self.table[head[1]-1][head[0]] != 2:
+                return True
+        if dir == 'down':
+            if self.table[head[1]+1][head[0]] != 2:
+                return True
+        
+        return False
+
+    def is_right_clear(self, snake):
+        dir = snake.direction
+        head = snake.queue[-1]
+
+        if dir == 'left' and head[1]-1 < 0:
+            return False
+        if dir == 'right' and head[1]+1 > GRID_DENSITY-1:
+            return False
+        if dir == 'down' and head[0]-1 < 0:
+            return False
+        if dir == 'up' and head[0]+1 > GRID_DENSITY-1:
+            return False
+
+        if dir == 'left':
+            if self.table[head[1]-1][head[0]] != 2:
+                return True
+        if dir == 'right':
+            if self.table[head[1]+1][head[0]] != 2:
+                return True
+        if dir == 'up':
+            if self.table[head[1]][head[0]+1] != 2:
+                return True
+        if dir == 'down':
+            if self.table[head[1]][head[0]-1] != 2:
+                return True
+        return False
+
+    def is_left_clear(self, snake):
+        dir = snake.direction
+        head = snake.queue[-1]
+
+        if dir == 'right' and head[1]-1 < 0:
+            return False
+        if dir == 'left' and head[1]+1 > GRID_DENSITY-1:
+            return False
+        if dir == 'up' and head[0]-1 < 0:
+            return False
+        if dir == 'down' and head[0]+1 > GRID_DENSITY-1:
+            return False
+
+        if dir == 'left':
+            if self.table[head[1]+1][head[0]] != 2:
+                return True
+        if dir == 'right':
+            if self.table[head[1]-1][head[0]] != 2:
+                return True
+        if dir == 'up':
+            if self.table[head[1]][head[0]-1] != 2:
+                return True
+        if dir == 'down':
+            if self.table[head[1]][head[0]+1] != 2:
+                return True
+        return False
+
+
     def draw(self, win):
         for i in range(GRID_DENSITY):
             for j in range(GRID_DENSITY):
@@ -566,20 +715,20 @@ def eval_genomes(genomes, config):
                 #params = (euclidean_distance, diff_x, diff_y)
                 #params = (euclidean_distance, head_x, head_y, diff_x, diff_y)
                 #params = ((euclidean_distance, diff_x, diff_y, normalised_lifespan, ) + death_booleans)
+                params = (grids[x].is_front_clear(snakes[x]), grids[x].is_right_clear(snakes[x]), grids[x].is_left_clear(snakes[x]), grids[x].is_food_front(snakes[x]), grids[x].is_food_right(snakes[x]), grids[x].is_food_left(snakes[x]))
 
-
-                params = (wall_distances + apple_distances + tail_distances + (euclidean_distance, diff_x, diff_y,))
+                #params = (apple_distances + wall_distances + tail_distances + (euclidean_distance, diff_x, diff_y,))
                 
                 #print(params)
                 #params = (euclidean_distance, mydegrees)
 
-                if (x == 0):
+                if x == 0:
                     print(params)
                 
                 # Zbierz wynik
                 output = nets[x].activate(params)
 
-                '''
+                
                 # 3 output
                 maks = -math.inf
                 kierunek = 2137
@@ -594,8 +743,8 @@ def eval_genomes(genomes, config):
                     s.turn_right()
                 elif kierunek == 2:
                     continue #go forward
-                '''
                 
+                '''
                 # 4 output
                 # Wybierz kierunek
                 maks = -math.inf
@@ -613,7 +762,7 @@ def eval_genomes(genomes, config):
                     s.turn_dir('left')
                 elif kierunek == 3:
                     s.turn_dir('right')
-                
+                '''
 
                 # 1 output
                 # Podejmij decyzje i skrec w lewo/prawo
