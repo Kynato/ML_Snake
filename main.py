@@ -645,7 +645,6 @@ def eval_genomes(genomes, config):
                 rem_nets.append(nets[x])
                 rem_gens.append(gens[x])
             elif s.too_old():
-                print('dom starcow')
                 gens[x].fitness = gens[x].fitness * 2
                 spec = spec-1
                 rem_snakes.append(s)
@@ -715,15 +714,13 @@ def eval_genomes(genomes, config):
                 #params = (euclidean_distance, diff_x, diff_y)
                 #params = (euclidean_distance, head_x, head_y, diff_x, diff_y)
                 #params = ((euclidean_distance, diff_x, diff_y, normalised_lifespan, ) + death_booleans)
-                params = (grids[x].is_front_clear(snakes[x]), grids[x].is_right_clear(snakes[x]), grids[x].is_left_clear(snakes[x]), grids[x].is_food_front(snakes[x]), grids[x].is_food_right(snakes[x]), grids[x].is_food_left(snakes[x]))
+                params = (grids[x].is_front_clear(snakes[x]), grids[x].is_right_clear(snakes[x]), grids[x].is_left_clear(snakes[x]), grids[x].is_food_front(snakes[x]), grids[x].is_food_right(snakes[x]), grids[x].is_food_left(snakes[x]), diff_y, diff_x)
 
                 #params = (apple_distances + wall_distances + tail_distances + (euclidean_distance, diff_x, diff_y,))
                 
                 #print(params)
                 #params = (euclidean_distance, mydegrees)
 
-                if x == 0:
-                    print(params)
                 
                 # Zbierz wynik
                 output = nets[x].activate(params)
