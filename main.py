@@ -24,7 +24,7 @@ class Grid:
         self.x = x
         self.y = y
         self.table = []
-        self.apple = (4, 5)
+        self.apple = (1, 1)
 
         for _ in range(GRID_DENSITY):
             line = []
@@ -38,7 +38,7 @@ class Grid:
         apple_x = random.randrange(0, GRID_DENSITY-1)
         apple_y = random.randrange(0, GRID_DENSITY-1)
         
-        while self.table[apple_y][apple_x] != 0:
+        while self.table[apple_y][apple_x] is not 0:
             apple_x = random.randrange(0, GRID_DENSITY-1)
             apple_y = random.randrange(0, GRID_DENSITY-1)
 
@@ -167,17 +167,27 @@ class Grid:
         apple_x = self.apple[0]
         apple_y = self.apple[1]
 
-        if head_y == apple_y:
-            if dir == 'left' and apple_x < head_x:
+        '''if head_y == apple_y:
+            if dir == 'left' and apple_x <= head_x:
                 return True
-            if dir == 'right' and apple_x > head_x:
+            if dir == 'right' and apple_x >= head_x:
                 return True
         
         if head_x == apple_x:
-            if dir == 'up' and apple_y < head_y:
+            if dir == 'up' and apple_y <= head_y:
                 return True
-            if dir == 'down' and apple_y > head_y:
-                return True
+            if dir == 'down' and apple_y >= head_y:
+                return True'''
+
+        if dir == 'left' and apple_x < head_x:
+            return True
+        if dir == 'right' and apple_x > head_x:
+            return True
+    
+        if dir == 'up' and apple_y < head_y:
+            return True
+        if dir == 'down' and apple_y > head_y:
+            return True
         
         return False
 
@@ -189,6 +199,7 @@ class Grid:
         apple_x = self.apple[0]
         apple_y = self.apple[1]
 
+        '''
         if head_y == apple_y:
             if dir == 'down' and apple_x < head_x:
                 return True
@@ -200,6 +211,16 @@ class Grid:
                 return True
             if dir == 'right' and apple_y > head_y:
                 return True
+        '''
+        if dir == 'down' and apple_x < head_x:
+            return True
+        if dir == 'up' and apple_x > head_x:
+            return True
+    
+        if dir == 'left' and apple_y < head_y:
+            return True
+        if dir == 'right' and apple_y > head_y:
+            return True
         
         return False
 
@@ -211,6 +232,7 @@ class Grid:
         apple_x = self.apple[0]
         apple_y = self.apple[1]
 
+        '''
         if head_y == apple_y:
             if dir == 'up' and apple_x < head_x:
                 return True
@@ -221,7 +243,17 @@ class Grid:
             if dir == 'right' and apple_y < head_y:
                 return True
             if dir == 'left' and apple_y > head_y:
-                return True
+                return True'''
+
+        if dir == 'up' and apple_x < head_x:
+            return True
+        if dir == 'down' and apple_x > head_x:
+            return True
+    
+        if dir == 'right' and apple_y < head_y:
+            return True
+        if dir == 'left' and apple_y > head_y:
+            return True
         
         return False
 
@@ -239,19 +271,19 @@ class Grid:
             return False
 
         if dir == 'left':
-            if self.table[head[1]][head[0]-1] != 2:
-                return True
+            if self.table[head[1]][head[0]-1] == 2:
+                return False
         if dir == 'right':
-            if self.table[head[1]][head[0]+1] != 2:
-                return True
+            if self.table[head[1]][head[0]+1] == 2:
+                return False
         if dir == 'up':
-            if self.table[head[1]-1][head[0]] != 2:
-                return True
+            if self.table[head[1]-1][head[0]] == 2:
+                return False
         if dir == 'down':
-            if self.table[head[1]+1][head[0]] != 2:
-                return True
+            if self.table[head[1]+1][head[0]] == 2:
+                return False
         
-        return False
+        return True
 
     def is_right_clear(self, snake):
         dir = snake.direction
@@ -267,18 +299,18 @@ class Grid:
             return False
 
         if dir == 'left':
-            if self.table[head[1]-1][head[0]] != 2:
-                return True
+            if self.table[head[1]-1][head[0]] == 2:
+                return False
         if dir == 'right':
-            if self.table[head[1]+1][head[0]] != 2:
-                return True
+            if self.table[head[1]+1][head[0]] == 2:
+                return False
         if dir == 'up':
-            if self.table[head[1]][head[0]+1] != 2:
-                return True
+            if self.table[head[1]][head[0]+1] == 2:
+                return False
         if dir == 'down':
-            if self.table[head[1]][head[0]-1] != 2:
-                return True
-        return False
+            if self.table[head[1]][head[0]-1] == 2:
+                return False
+        return True
 
     def is_left_clear(self, snake):
         dir = snake.direction
@@ -294,18 +326,18 @@ class Grid:
             return False
 
         if dir == 'left':
-            if self.table[head[1]+1][head[0]] != 2:
-                return True
+            if self.table[head[1]+1][head[0]] == 2:
+                return False
         if dir == 'right':
-            if self.table[head[1]-1][head[0]] != 2:
-                return True
+            if self.table[head[1]-1][head[0]] == 2:
+                return False
         if dir == 'up':
-            if self.table[head[1]][head[0]-1] != 2:
-                return True
+            if self.table[head[1]][head[0]-1] == 2:
+                return False
         if dir == 'down':
-            if self.table[head[1]][head[0]+1] != 2:
-                return True
-        return False
+            if self.table[head[1]][head[0]+1] == 2:
+                return False
+        return True
 
 
     def draw(self, win):
@@ -626,7 +658,6 @@ def eval_genomes(genomes, config):
         if run:
             for x, s in enumerate(snakes):
                 s.move()
-                gens[x].fitness += 1
                 if s.eat(grids[x]):
                     gens[x].fitness += 100
 
@@ -638,7 +669,7 @@ def eval_genomes(genomes, config):
         for x, s in enumerate(snakes):
             if s.crash():
                 #print('sciana mordo')
-                gens[x].fitness = gens[x].fitness *0.5
+                gens[x].fitness = gens[x].fitness *0.1
                 spec = spec-1
                 rem_snakes.append(s)
                 rem_grids.append(grids[x])
@@ -651,6 +682,8 @@ def eval_genomes(genomes, config):
                 rem_grids.append(grids[x])
                 rem_nets.append(nets[x])
                 rem_gens.append(gens[x])
+            else:
+                gens[x].fitness += 1
 
         # Throw the trash into the garbage bin
         for s in rem_snakes:
@@ -675,10 +708,10 @@ def eval_genomes(genomes, config):
         # ML DECISIONS
         if run:
             for x, s in enumerate(snakes):
-                head = snakes[x].queue[-1]
+                head = s.queue[-1]
                 # wspolrzedne glowy weza i jablek
-                head_x = snakes[x].queue[-1][0]
-                head_y = snakes[x].queue[-1][1]
+                head_x = s.queue[-1][0]
+                head_y = s.queue[-1][1]
                 apple_x = grids[x].apple[0]
                 apple_y = grids[x].apple[1]
 
@@ -688,12 +721,11 @@ def eval_genomes(genomes, config):
                 vec_x = head_x - apple_x
                 vec_y = head_y - apple_y
 
-                live_left = snakes[x].life_left
-                normalised_lifespan = live_left/(GRID_DENSITY*4)
+                live_left = s.life_left
 
                 # kierunek jazdy
-                goes_right = snakes[x].goes_right()
-                goes_up = snakes[x].goes_up()
+                goes_right = s.goes_right()
+                goes_up = s.goes_up()
 
                 # obliczenie kata do jablka
                 myradians = math.atan2(vec_y, vec_x)
@@ -714,12 +746,16 @@ def eval_genomes(genomes, config):
                 #params = (euclidean_distance, diff_x, diff_y)
                 #params = (euclidean_distance, head_x, head_y, diff_x, diff_y)
                 #params = ((euclidean_distance, diff_x, diff_y, normalised_lifespan, ) + death_booleans)
-                params = (grids[x].is_front_clear(snakes[x]), grids[x].is_right_clear(snakes[x]), grids[x].is_left_clear(snakes[x]), grids[x].is_food_front(snakes[x]), grids[x].is_food_right(snakes[x]), grids[x].is_food_left(snakes[x]), diff_y, diff_x)
+                params = (grids[x].is_front_clear(s), grids[x].is_right_clear(s), grids[x].is_left_clear(s), grids[x].is_food_front(s), grids[x].is_food_right(s), grids[x].is_food_left(s))
 
-                #params = (apple_distances + wall_distances + tail_distances + (euclidean_distance, diff_x, diff_y,))
+                #params = (apple_distances + wall_distances + tail_distances + death_booleans)
                 
                 #print(params)
                 #params = (euclidean_distance, mydegrees)
+
+                if True:
+                    if x is 0:
+                        print(params)
 
                 
                 # Zbierz wynik
@@ -738,7 +774,7 @@ def eval_genomes(genomes, config):
                     s.turn_left()
                 elif kierunek == 1:
                     s.turn_right()
-                elif kierunek == 2:
+                else:
                     continue #go forward
                 
                 '''
