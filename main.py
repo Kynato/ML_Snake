@@ -753,7 +753,7 @@ def eval_genomes(genomes, config):
                 #print(params)
                 #params = (euclidean_distance, mydegrees)
 
-                if True:
+                if False:
                     if x is 0:
                         print(params)
 
