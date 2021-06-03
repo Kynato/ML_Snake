@@ -239,6 +239,34 @@ class Grid:
         
         return False
 
+    def dist_to_death_front(self, snake):
+        dir = snake.direction
+        head = snake.queue[-1]
+
+        if dir == 'left' and head[0]-1 < 0:
+            return False
+        if dir == 'right' and head[0]+1 > GRID_DENSITY-1:
+            return False
+        if dir == 'up' and head[1]-1 < 0:
+            return False
+        if dir == 'down' and head[1]+1 > GRID_DENSITY-1:
+            return False
+
+        if dir == 'left':
+            if self.table[head[1]][head[0]-1] == 2:
+                return False
+        if dir == 'right':
+            if self.table[head[1]][head[0]+1] == 2:
+                return False
+        if dir == 'up':
+            if self.table[head[1]-1][head[0]] == 2:
+                return False
+        if dir == 'down':
+            if self.table[head[1]+1][head[0]] == 2:
+                return False
+        
+        return True
+
     def is_front_clear(self, snake):
         dir = snake.direction
         head = snake.queue[-1]
