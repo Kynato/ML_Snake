@@ -167,18 +167,6 @@ class Grid:
         apple_x = self.apple[0]
         apple_y = self.apple[1]
 
-        '''if head_y == apple_y:
-            if dir == 'left' and apple_x <= head_x:
-                return True
-            if dir == 'right' and apple_x >= head_x:
-                return True
-        
-        if head_x == apple_x:
-            if dir == 'up' and apple_y <= head_y:
-                return True
-            if dir == 'down' and apple_y >= head_y:
-                return True'''
-
         if dir == 'left' and apple_x < head_x:
             return True
         if dir == 'right' and apple_x > head_x:
@@ -191,6 +179,26 @@ class Grid:
         
         return False
 
+    def is_food_back(self, snake):
+        dir = snake.direction
+        head = snake.queue[-1]
+        head_x = head[0]
+        head_y = head[1]
+        apple_x = self.apple[0]
+        apple_y = self.apple[1]
+
+        if dir == 'left' and apple_x > head_x:
+            return True
+        if dir == 'right' and apple_x < head_x:
+            return True
+    
+        if dir == 'up' and apple_y > head_y:
+            return True
+        if dir == 'down' and apple_y < head_y:
+            return True
+        
+        return False
+
     def is_food_right(self, snake):
         dir = snake.direction
         head = snake.queue[-1]
@@ -199,19 +207,6 @@ class Grid:
         apple_x = self.apple[0]
         apple_y = self.apple[1]
 
-        '''
-        if head_y == apple_y:
-            if dir == 'down' and apple_x < head_x:
-                return True
-            if dir == 'up' and apple_x > head_x:
-                return True
-        
-        if head_x == apple_x:
-            if dir == 'left' and apple_y < head_y:
-                return True
-            if dir == 'right' and apple_y > head_y:
-                return True
-        '''
         if dir == 'down' and apple_x < head_x:
             return True
         if dir == 'up' and apple_x > head_x:
@@ -231,19 +226,6 @@ class Grid:
         head_y = head[1]
         apple_x = self.apple[0]
         apple_y = self.apple[1]
-
-        '''
-        if head_y == apple_y:
-            if dir == 'up' and apple_x < head_x:
-                return True
-            if dir == 'down' and apple_x > head_x:
-                return True
-        
-        if head_x == apple_x:
-            if dir == 'right' and apple_y < head_y:
-                return True
-            if dir == 'left' and apple_y > head_y:
-                return True'''
 
         if dir == 'up' and apple_x < head_x:
             return True
@@ -669,7 +651,7 @@ def eval_genomes(genomes, config):
         for x, s in enumerate(snakes):
             if s.crash():
                 #print('sciana mordo')
-                gens[x].fitness = gens[x].fitness *0.1
+                gens[x].fitness = 0
                 spec = spec-1
                 rem_snakes.append(s)
                 rem_grids.append(grids[x])
@@ -742,16 +724,12 @@ def eval_genomes(genomes, config):
                 tail_distances = grids[x].tail_dist(head)
                 death_booleans = grids[x].death_booleans(head)
 
-                # INPUTY DO NN
-                #params = (euclidean_distance, diff_x, diff_y)
-                #params = (euclidean_distance, head_x, head_y, diff_x, diff_y)
-                #params = ((euclidean_distance, diff_x, diff_y, normalised_lifespan, ) + death_booleans)
-                params = (grids[x].is_front_clear(s), grids[x].is_right_clear(s), grids[x].is_left_clear(s), grids[x].is_food_front(s), grids[x].is_food_right(s), grids[x].is_food_left(s))
+                # FRONT LEWO PRAWO
+                coliders = (grids[x].is_front_clear(s), grids[x].is_left_clear(s), grids[x].is_right_clear(s))
+                food_compass = (grids[x].is_food_front(s), grids[x].is_food_left(s), grids[x].is_food_right(s), grids[x].is_food_back(s))
 
-                #params = (apple_distances + wall_distances + tail_distances + death_booleans)
-                
-                #print(params)
-                #params = (euclidean_distance, mydegrees)
+                # INPUTY DO NN
+                params = (coliders + food_compass)
 
                 if False:
                     if x is 0:
